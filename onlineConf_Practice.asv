@@ -1,6 +1,6 @@
 % clear all
 Screen('Preference', 'SkipSyncTests', 1); 
-cd('C:\Users\labadmin\Documents\QingjieExp');
+cd('C:\Users\labadmin\Documents\Qingjie-GitHub\Speed-performance');
 
 subj = 'pilot';  
 dateTime = clock;                %get  s time for seed  
@@ -37,7 +37,7 @@ UniRandRadius = 50;
 edgesize = 50;
 hitrates = [0.3];
 
-rep = 1;
+rep = 5;
 distances = linspace(edgesize,displayInfo.windowRect(3)-edgesize,dists_n+2)-edgesize;
 distances = repmat(distances(2:end-1),1,length(hitrates)*rep);
 scorebar_length = 200;
@@ -49,7 +49,7 @@ target_sizes = repmat(target_sizes,1,dists_n*rep);
 target_sizes = target_sizes';
 target_sizes = target_sizes(:)';
 switch_scale = 1.5;
-lifespan = [2];
+lifespan = [2,2,2];
 block_n = length(lifespan);
 %% Trial
 speedthreshold = 10; % pixel per second, equals to 2.48 mm/s
@@ -63,6 +63,7 @@ instruct = 'Good luck, try hard, and have fun!';
 HideCursor;
 Screen('FillRect', displayInfo.window, displayInfo.blackVal);
  
+
 while true
     DrawFormattedText(displayInfo.window,instruct,'center','center', displayInfo.whiteVal); 
     Screen('Flip', displayInfo.window);
@@ -173,9 +174,10 @@ for j = 1:block_n
                     Screen('DrawDots', displayInfo.window, startpos, start_size, [1 1 1],[],1);
                     if frame >= framerate * story(1)
                         percent_score = max(1-((frame ./ framerate)-story(1)) / lifespan(j),0);
-                        Screen('DrawDots',displayInfo.window, params(i,1:2), tSize,[0 1 0],[],1);
-                        Screen('FillRect', displayInfo.window, [0 0 1], [displayInfo.xCenter - percent_score * scorebar_length,300,displayInfo.xCenter - percent_score * scorebar_length,600]);
-
+                        %Screen('DrawDots',displayInfo.window, params(i,1:2), tSize,[0 1 0],[],1);
+                        TarUB = params(i,1)- percent_score * scorebar_length;
+                        TarLB = params(i,1)+ percent_score * scorebar_length;
+                        Screen('FillRect', displayInfo.window, [0 0 1], [TarUB,300,TarLB,600]);
 %                         Screen('FrameOval',displayInfo.window, [1 1 0], [params(i,1)-switch_size./2,params(i,2)-switch_size./2,params(i,1)+switch_size./2,params(i,2)+switch_size./2]);
                         Screen('DrawLine', displayInfo.window, [1 1 1], displayInfo.xCenter - percent_score * scorebar_length,displayInfo.yCenter-200, displayInfo.xCenter + percent_score * scorebar_length,displayInfo.yCenter-200,5);
                         DrawFormattedText(displayInfo.window,['Score = ' num2str(percent_score * 10)],'center',displayInfo.yCenter-220, displayInfo.whiteVal);
@@ -210,7 +212,8 @@ for j = 1:block_n
                             onset_recorded = 1;
                         end
                         [keyIsDown,~,keyCode] = KbCheck;
-                        
+                        TarUB = params(i,1)- percent_score * scorebar_length;
+                        TarLB = params(i,1)+ percent_score * scorebar_length;
                         if (locdiff <= speedthreshold/framerate && ~mode) || (buttons(1) && mode)
                             if norm(xy - startpos) < randdists(i)/2
                                 DrawFormattedText(displayInfo.window,'Not Even Close :(','center','center', displayInfo.whiteVal);
@@ -222,9 +225,9 @@ for j = 1:block_n
                                 endpos = [x y];
                                 hit = 1;
                                 bar_color = [1 1 1];
-                                if norm(xy - params(i,1:2)) > tSize/2
+                                if x < TarUB || x > TarLB
                                     hit = 0;
-                                    bar_color = [1 0 0];
+                                    bar_color = [1 0 0];  
                                 end
                                 if switch_recorded && hit
                                     end_t = end_t + penalty;
@@ -244,7 +247,7 @@ for j = 1:block_n
 %                                     Screen('FrameOval',displayInfo.window, [1 1 0], [params(i,1)-switch_size./2,params(i,2)-switch_size./2,params(i,1)+switch_size./2,params(i,2)+switch_size./2]);
                                     Screen('DrawDots', displayInfo.window, xy, 5, [1 0 0],[],1);
                                     Screen('DrawLine', displayInfo.window, bar_color, displayInfo.xCenter - percent_score * scorebar_length,displayInfo.yCenter-200, displayInfo.xCenter + percent_score * scorebar_length,displayInfo.yCenter-200,5);
-                                    if hit
+                                    if hit == 
                                         DrawFormattedText(displayInfo.window,['Score = ' num2str(percent_score * 10)],'center',displayInfo.yCenter-220, displayInfo.whiteVal);
                                     else
                                         DrawFormattedText(displayInfo.window,['Miss :('],'center',displayInfo.yCenter-220, displayInfo.whiteVal);
