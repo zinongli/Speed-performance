@@ -91,7 +91,7 @@ for i = 1:size(copy,1)
     x = x - 50; % 50 can be changed as parameter
     fun = @(b) (b(1)./(1+exp(b(2)*(x-b(3)))))-y; %sigmoidFit's formula 
     b = lsqnonlin(fun,b0); % lsqnonlin is the funtion of sigmoidFit
-    sigmoidFit(:,i) = b; % save b(b,a,c,3 parameters) into a table named signoidFit
+    sigmoidFit(:,i) = b;
 end
 maxSpeed = -sigmoidFit(2,:)'.*0.25.*copy(:,10).*60; % sigmoid parameter a * 0.25 = how much percent of distance/per frame, then * distance, and *60 to get 1 second 
 %%
@@ -250,8 +250,6 @@ end
 % mld = fitlm(speedPoint,stds)
 
 %%
-% % compare max speed and average speed
-% 
 % plot(sort(maxSpeed),sort(copy(:,22)),'o')
 % 
 % xlabel('Max Speed mm/s')

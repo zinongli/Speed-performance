@@ -7,7 +7,7 @@ dateTime = clock;                %get  s time for seed
 rng(sum(100*dateTime) );
 expName = 'practice_traj';
 session = 01;
-redoCalib = 1;
+redoCalib = 0;
 
 [displayInfo] = startExp(subj,datetime,rng);
 [displayInfo] = screenVisuals(displayInfo);
@@ -32,12 +32,12 @@ bottomBuff = [0 displayInfo.screenYpixels-displayInfo.screenAdj/2 displayInfo.sc
 
 %% Task Parameters
 
-dists_n = 3; % 3 kind of disciances
+dists_n = 3;
 UniRandRadius = 50;
 edgesize = 50;
 hitrates = [0.3];
 
-rep = 10; % repeat 10 times of 3 (kind of distances)* 2(directions) 
+rep = 10; % re
 distances = linspace(edgesize,displayInfo.windowRect(3)-edgesize,dists_n+2)-edgesize;
 distances = repmat(distances(2:end-1),1,length(hitrates)*rep);
 scorebar_length = 200;
