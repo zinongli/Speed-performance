@@ -37,7 +37,7 @@ UniRandRadius = 50;
 edgesize = 50;
 hitrates = [0.3];
 
-rep = 5;
+rep = 10;
 distances = linspace(edgesize,displayInfo.windowRect(3)-edgesize,dists_n+2)-edgesize;
 distances = repmat(distances(2:end-1),1,length(hitrates)*rep);
 scorebar_length = 200;
@@ -49,7 +49,7 @@ target_sizes = repmat(target_sizes,1,dists_n*rep);
 target_sizes = target_sizes';
 target_sizes = target_sizes(:)';
 switch_scale = 1.5;
-lifespan = [2,2,2];
+lifespan = [2,2];
 block_n = length(lifespan);
 %% Trial
 speedthreshold = 10; % pixel per second, equals to 2.48 mm/s
