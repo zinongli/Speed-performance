@@ -3,11 +3,11 @@ Screen('Preference', 'SkipSyncTests', 1);
 cd('C:\Users\labadmin\Documents\Qingjie-GitHub\Speed-performance');
 
 subj = 'pilot';  
-dateTime = clock;                %get  s time for seed  
+dateTime = clock;                %get  s time for seed             
 rng(sum(100*dateTime) );
 expName = 'practice_traj';
 session = 01;
-redoCalib = 1;
+redoCalib = 0;
 
 [displayInfo] = startExp(subj,datetime,rng);
 [displayInfo] = screenVisuals(displayInfo);
@@ -49,7 +49,7 @@ target_sizes = repmat(target_sizes,1,dists_n*rep);
 target_sizes = target_sizes';
 target_sizes = target_sizes(:)';
 switch_scale = 1.5;
-lifespan = [2,2];
+lifespan = [0.9,0.9,0.9];
 block_n = length(lifespan);
 %% Trial
 speedthreshold = 10; % pixel per second, equals to 2.48 mm/s
