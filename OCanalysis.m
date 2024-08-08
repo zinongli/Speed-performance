@@ -65,7 +65,7 @@ projScale = (abs(dot(copy(:,19:20),copy(:,24:25),2) ./ dot(copy(:,24:25),copy(:,
 rejections = endPoints - projScale.* copy(:,24:25);
 rejLength = sqrt(rejections(:,1).^2 + rejections(:,2).^2);
 copy(:,29) = rejLength;
-%%
+%
 reCenteredTrajX = NaN(size(copy,1),size(validTraX,2));
 reCenteredTrajY = NaN(size(copy,1),size(validTraX,2));
 
@@ -101,7 +101,7 @@ for i = 1:size(data,1)
     x = x - 50;
     b = sigmoidFit(:,i);
     adjustedX = x - b(3);
-    figure
+    figure %open the new figure window in everytime loop
     plot(adjustedX,b(1)./(1+exp(b(2)*(x-b(3)))),'-')
     hold on
     plot(adjustedX,y,'o')
@@ -111,7 +111,7 @@ for i = 1:size(data,1)
     hold off
     xlim([-45 45])
     ylim([-0.1,1.2])
-
+    pause(0.2)
 end
 
 
