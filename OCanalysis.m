@@ -33,6 +33,15 @@
 %     load('xTrajComplete.mat')
 %     load('yTrajComplete.mat')
 % end
+
+%%
+
+load(['data_onlineConf/pilot/pilot_practice_traj_S1_08-Aug-2024_calibration.mat'])
+load(['data_onlineConf/pilot/pilot_practice_traj_S1_08-Aug-2024_tform.mat'])
+load(['data_onlineConf/pilot/pilot_practice_traj_S1_08-Aug-2024_trialdata.mat'])
+load(['data_onlineConf/pilot/pilot_practice_traj_S1c_08-Aug-2024_rawtotal.mat'])
+load(['data_onlineConf/pilot/pilot_practice_traj_S1c_08-Aug-2024_traXtotal.mat'])
+load(['data_onlineConf/pilot/pilot_practice_traj_S1c_08-Aug-2024_traYtotal.mat'])
 %%
 index = NaN(size(data,1),1);
 for i = 1:size(data,1)
@@ -95,7 +104,7 @@ for i = 1:size(copy,1)
 end
 maxSpeed = -sigmoidFit(2,:)'.*0.25.*copy(:,10).*60; % sigmoid parameter a * 0.25 = how much percent of distance/per frame, then * distance, and *60 to get 1 second 
 %%
-for i = 1:size(data,1)
+for i = 1:3
     x = 50:endTime(i);
     y = traProjection(i,x);
     x = x - 50;
@@ -115,71 +124,29 @@ for i = 1:size(data,1)
 end
 
 
-%% grouping by range (e.g. 50-100, 100-150, etc)
-% copy = ZL;
-% [sortspd,ind] = sort(copy(:,22));
-% group_n = 15;
-% stds = NaN(1,group_n);
-% hitrate = NaN(1,group_n);
-% means = NaN(1,group_n);
-% speedStd = NaN(1,group_n);
-% speedPoint = NaN(1,group_n);
-% for i = 1:group_n
-%     stds(i) = std(copy((i*50 < copy(:,22) & i*50+50 > copy(:,22)),23));
-%     hitrate(i) = sum(copy((i*50 < copy(:,22) & i*50+50 > copy(:,22)),28));
-%     means(i) = mean(copy((i*50 < copy(:,22) & i*50+50 > copy(:,22)),23));
-%     speedStd(i) = std(copy(i*50 < copy(:,22) & i*50+50 > copy(:,22),22));
-%     speedPoint(i) = mean(copy(i*50 < copy(:,22) & i*50+50 > copy(:,22),22));
-%     sum(i*50 < copy(:,22) & i*50+50 > copy(:,22))
-% end
-% 
-% mld = fitlm(speedPoint,stds)
-% 
-% errorstdX = std(copy(:,23));
-% bootMax = 1000;
-% numTestTrials = 50;
-% 
-% numConds = 13;
-% numCondd = 14;
-% bootXs = NaN(numTestTrials,numConds);
-% bootXd = NaN(numTestTrials,numCondd);
-% stdBoots = NaN(bootMax,numConds);
-% meanBoots = NaN(bootMax,numConds);
-% 
-% for ii = 1:bootMax
-%     
-%     for jj = 1:numConds
-%         i = jj+2;
-%         selectionLogic = i*50 < copy(:,22) & i*50+50 > copy(:,22);
-%         numTrials = sum(selectionLogic);
-%         bootInd = randi(numTrials,numTestTrials,1);
-%         subgroup = copy(selectionLogic,23);
-%         bootXs(:,jj) = subgroup(bootInd); 
-% %         bootY(:,jj) = epMatY(bootInd(:,jj),jj);
-%     end
-% 
-%     bootstdXs = std(bootXs);
-%     bootmeanXs = mean(bootXs);
-% %     bootstdY = std(bootY);
-% %     bootstdXY = sqrt(bootstdX.^2 + bootstdY.^2);
-%     stdBoots(ii,:) = bootstdXs;
-%     meanBoots(ii,:) = bootmeanXs;
-% end
-% 
-% errorsErrors = NaN(1,numConds);
-% for i = 1:numConds
-%     errorsErrors(i) = std(stdBoots(:,i));
-% end
-% 
-% figure
-% errorbar(speedPoint(3:15),stds(3:15),errorsErrors,'vertical','-bo')
-% hold on 
-% errorbar(speedPoint(3:15),stds(3:15),speedStd(3:15),'horizontal','-bo')
-% hold off
-% ylim([0,25])
-% ylabel('STD along the reach (mm)')
-% xlabel('Average speed of the reach (mm/s)')
-% title('Errorbar data from 1000 bootstrap samples of 50 trials each')
+%% max speed vs euclidean error
+subplot(1,2,1)
+plot(maxSpeed,abs(copy(:,23)),'o')
+xlim([0,2000])
+xlabel('Max speed (mm/s)')
+ylabel('Gain error (mm)')
+
+subplot(1,2,2)
+plot(maxSpeed,copy(:,29),'o')
+xlim([0,2000])
+xlabel('Max speed (mm/s)')
+ylabel('Orthogonal error (mm)')
+
+sgtitle('Endpoint error v.s. max speed')
+%%
+plot(copy(:,11) - copy(:,13),copy(:,12) - copy(:,14),'o')
+xline(0,'--')
+yline(0,'--')
+xlabel('Horizontal (mm)')
+ylabel('Vertical (mm)')
+title('Endpoint scatter relative to target center')
+xlim([-100,100])
+ylim([-100,100])
 %%
 % copy = ZL;
 % tSizes = unique(copy(:,15));
