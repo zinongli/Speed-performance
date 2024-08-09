@@ -220,9 +220,3 @@ ylim([-100,100])
 
 %%
 % compare max speed and average speed
-
-plot(sort(maxSpeed),sort(copy(:,22)),'o')
-
-xlabel('Max Speed mm/s')
-ylabel('Average Speed mm/s')
-title('Max v.s. Average Speed, each point = one trial')
