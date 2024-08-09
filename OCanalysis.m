@@ -125,6 +125,7 @@ end
 
 
 %% max speed vs euclidean error
+figure
 subplot(1,2,1)
 plot(maxSpeed,abs(copy(:,23)),'o')
 xlim([0,2000])
@@ -139,6 +140,7 @@ ylabel('Orthogonal error (mm)')
 
 sgtitle('Endpoint error v.s. max speed')
 %%
+figure
 plot(copy(:,11) - copy(:,13),copy(:,12) - copy(:,14),'o')
 xline(0,'--')
 yline(0,'--')
