@@ -74,6 +74,13 @@ projScale = (abs(dot(copy(:,19:20),copy(:,24:25),2) ./ dot(copy(:,24:25),copy(:,
 rejections = endPoints - projScale.* copy(:,24:25);
 rejLength = sqrt(rejections(:,1).^2 + rejections(:,2).^2);
 copy(:,29) = rejLength;
+for i = 1:size(copy,1)
+    if  rem(i,2)
+        copy(i,29) = copy(i,29);
+    else 
+        copy(i,29) = -copy(i,29);
+    end
+end
 %
 reCenteredTrajX = NaN(size(copy,1),size(validTraX,2));
 reCenteredTrajY = NaN(size(copy,1),size(validTraX,2));
@@ -93,21 +100,25 @@ accProjection = speedProjection(:,2:end) - speedProjection(:,1:end-1);
 
 endTime = sum(~isnan(reCenteredTrajX),2);
 b0 = [1,-1,45];
+bUB = [2,-0.1,100];
+bLB = [0.1,-1.5,0];
+
 sigmoidFit = NaN(3,size(copy,1));
 for i = 1:size(copy,1)
-    x = 50:endTime(i);
+    x = 1:endTime(i);
     y = traProjection(i,x);
-    x = x - 50; % 50 can be changed as parameter
-    fun = @(b) (b(1)./(1+exp(b(2)*(x-b(3)))))-y; %sigmoidFit's formula 
-    b = lsqnonlin(fun,b0); % lsqnonlin is the funtion of sigmoidFit
+    x = 1:sum(y<1.5);
+    y = traProjection(i,x);
+    fun = @(b) sum(((b(1)./(1+exp(b(2)*(x-b(3)))))-y).^2); %sigmoidFit's formula 
+    b = bads(fun,b0,bLB,bUB); % lsqnonlin is the funtion of sigmoidFit
     sigmoidFit(:,i) = b; % save b(b,a,c,3 parameters) into a table named signoidFit
 end
 maxSpeed = -sigmoidFit(2,:)'.*0.25.*copy(:,10).*60; % sigmoid parameter a * 0.25 = how much percent of distance/per frame, then * distance, and *60 to get 1 second 
+copy(:,30) = maxSpeed;
 %%
-for i = 1:3
-    x = 50:endTime(i);
+for i = 100
+    x = 1:endTime(i);
     y = traProjection(i,x);
-    x = x - 50;
     b = sigmoidFit(:,i);
     adjustedX = x - b(3);
     figure %open the new figure window in everytime loop
@@ -127,29 +138,181 @@ end
 %% max speed vs euclidean error
 figure
 subplot(1,2,1)
-plot(maxSpeed,abs(copy(:,23)),'o')
+scatter(maxSpeed,(copy(:,23)),'filled')
+hold on 
+yline(0,'--','LineWidth',2)
+hold off
 xlim([0,2000])
+ylim([-75,75])
 xlabel('Max speed (mm/s)')
 ylabel('Gain error (mm)')
 
 subplot(1,2,2)
-plot(maxSpeed,copy(:,29),'o')
+scatter(maxSpeed,copy(:,29),'filled')
+hold on 
+yline(0,'--','LineWidth',2)
+hold off
 xlim([0,2000])
+ylim([-75,75])
 xlabel('Max speed (mm/s)')
 ylabel('Orthogonal error (mm)')
 
 sgtitle('Endpoint error v.s. max speed')
+
 %%
-figure
-plot(copy(:,11) - copy(:,13),copy(:,12) - copy(:,14),'o')
-xline(0,'--')
-yline(0,'--')
-xlabel('Horizontal (mm)')
-ylabel('Vertical (mm)')
-title('Endpoint scatter relative to target center')
-xlim([-100,100])
-ylim([-100,100])
+xTotal = copy(:,23);
+
+yTotal = copy(:,29);
+
+theta0 = [0,0,0.0001,5];
+UB = [1,30,1,50];
+LB = [-1,-30,0.0001,1];
+
+f = @(theta,speed,error) -(log(1/sqrt(2*pi)) * length(speed) + sum(-log(theta(3).*speed + theta(4)) - (((error - (theta(1).*speed + theta(2))).^2)./ (2.*(theta(3).*speed+theta(4)).^2))));
+
+xParams = NaN(3,4);
+xTotalNLL = @(theta) f(theta,copy(:,30),xTotal);
+xParams(1,:) = bads(xTotalNLL,theta0,LB,UB);
+
+xTotalAIC = 2 * 4 - 2 * -xTotalNLL(xParams(1,:));
+xTotalBIC = 4 * log(length(copy(:,30))) - 2 * -xTotalNLL(xParams(1,:));
+
+theta0 = [0,0,0.0001,5];
+UB = [1,30,1,50];
+LB = [-1,-30,0.0001,1];
+
+yParams = NaN(3,4);
+yTotalNLL = @(theta) f(theta,copy(:,30),yTotal);
+yParams(1,:) = bads(yTotalNLL,theta0,LB,UB);
+
+yTotalAIC = 2 * 4 - 2 * -yTotalNLL(yParams(1,:));
+yTotalBIC = 4 * log(length(copy(:,30))) - 2 * -yTotalNLL(yParams(1,:));
+
+
+
+T = table([xTotalAIC;yTotalAIC],...
+    [xTotalBIC;yTotalBIC],...
+    'VariableNames',{'AIC','BIC'},...
+    'RowName',{'X Common','Y Commom'...
+    }); 
+disp(T)
+%% Graphs
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+alphaRange = [0.1,0.9];
+theme_color = [1 0 0];
+map = theme_color .* linspace(alphaRange(1),alphaRange(2),100)' + [1 1 1] .* (1-linspace(alphaRange(1),alphaRange(2),100)');
+
+figure(1)
+alphaRange = [0.1,0.9];
+speed2alpha = (copy(:,30)-min(copy(:,30))) ./ (max(copy(:,30))-min(copy(:,30))) .* (alphaRange(2)-alphaRange(1)) + alphaRange(1);
+d = scatter(copy(:,29),copy(:,23),'.','SizeData',250);
+d.MarkerFaceColor = 'flat';
+d.CData = theme_color .* speed2alpha + [1 1 1] .* (1-speed2alpha);
+ylims = [-70,70];
+xticks(-60:20:60)
+yticks(-60:20:60)
+xlim(ylims)
+ylim(ylims)
+
+xlabel('Orthogonal Error (mm)')
+ylabel('Along Error (mm)')
+title('All Trials')
+xline(0)
+yline(0)
+nw_label = 'Overshoot                                 ';
+sw_label = 'Undershoot                                 ';
+text(0.05, max(ylims), nw_label, 'FontWeight', 'bold', 'HorizontalAlignment','right','VerticalAlignment', 'top');
+text(0.05, min(ylims), sw_label, 'FontWeight', 'bold', 'HorizontalAlignment','right','VerticalAlignment', 'bottom');
+nw_label = 'left                                ';
+sw_label = '                                right';
+text(0.05, min(ylims)-12, nw_label, 'FontWeight', 'bold', 'HorizontalAlignment','right','VerticalAlignment', 'bottom');
+text(0.05, min(ylims)-12, sw_label, 'FontWeight', 'bold', 'HorizontalAlignment','left','VerticalAlignment', 'bottom');
+
+
 %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+figure(2)
+indices = 1:1800;
+theme_color = [0 0.4470 0.7410];
+central_linfit = (xParams(1,1) .* indices) + xParams(1,2);
+predict_bias = (xParams(1,1) .* copy(:,30)) + xParams(1,2);
+predict_std = (xParams(1,3) * copy(:,30)) + xParams(1,4);
+z_scores = (xTotal-predict_bias)./predict_std;
+ylims = [-100,100];
+shades_n = 7;
+z_gr = linspace(0,3.5,shades_n+1);
+shade_gr = linspace(0.8,0.05,shades_n);
+trials_bin = NaN(1,shades_n *2);
+hold on
+for i = 1:shades_n
+    x_UUB = central_linfit + z_gr(i+1) .* (xParams(1,3) * indices + xParams(1,4));
+    x_ULB = central_linfit + z_gr(i) .* (xParams(1,3) * indices + xParams(1,4));
+    x_LUB = central_linfit - z_gr(i) .* (xParams(1,3) * indices + xParams(1,4));
+    x_LLB = central_linfit - z_gr(i+1) .* (xParams(1,3) * indices + xParams(1,4));
+    patch([indices,fliplr(indices)],[x_UUB,fliplr(x_ULB)], theme_color, 'FaceAlpha', shade_gr(i), 'EdgeColor','none')
+    patch([indices,fliplr(indices)],[x_LUB,fliplr(x_LLB)], theme_color, 'FaceAlpha', shade_gr(i), 'EdgeColor','none')
+    trials_bin(shades_n-i+1) = sum(z_scores(:) > z_gr(i) & z_scores(:) < z_gr(i+1));
+    trials_bin(shades_n+i) = sum(z_scores(:) < -z_gr(i) & z_scores(:) > -z_gr(i+1));
+end
+plot(copy(:,30),xTotal,'.b','MarkerSize',20)
+plot(indices,central_linfit,'--','Color',theme_color,'LineWidth',2)
+hold off
+
+xlabel('Speed (mm/s)')
+ylabel('Endpoint Error (mm)')
+title('All Trials')
+xlim([0,1800])
+ylim(ylims)
+xticks(0:500:1500)
+
+% Add labels to the northwest and southwest corners of the plot
+nw_label = 'Overshoot        ';
+sw_label = 'Undershoot       ';
+text(0.05, max(ylims), nw_label, 'FontWeight', 'bold', 'HorizontalAlignment','right','VerticalAlignment', 'top');
+text(0.05, min(ylims), sw_label, 'FontWeight', 'bold', 'HorizontalAlignment','right','VerticalAlignment', 'bottom');
+
+%%
+figure(3)
+
+indices = 1:1800;
+theme_color = [0 0.4470 0.7410];
+central_linfit = (yParams(1,1) .* indices) + yParams(1,2);
+predict_bias = (yParams(1,1) .* copy(:,30)) + yParams(1,2);
+predict_std = (yParams(1,3) * copy(:,30)) + yParams(1,4);
+z_scores = (yTotal-predict_bias)./predict_std;
+ylims = [-100,100];
+shades_n = 7;
+z_gr = linspace(0,3.5,shades_n+1);
+shade_gr = linspace(0.8,0.05,shades_n);
+trials_bin = NaN(1,shades_n *2);
+hold on
+for i = 1:shades_n
+    y_UUB = central_linfit + z_gr(i+1) .* (yParams(1,3) * indices + yParams(1,4));
+    y_ULB = central_linfit + z_gr(i) .* (yParams(1,3) * indices + yParams(1,4));
+    y_LUB = central_linfit - z_gr(i) .* (yParams(1,3) * indices + yParams(1,4));
+    y_LLB = central_linfit - z_gr(i+1) .* (yParams(1,3) * indices + yParams(1,4));
+    patch([indices,fliplr(indices)],[y_UUB,fliplr(y_ULB)], theme_color, 'FaceAlpha', shade_gr(i), 'EdgeColor','none')
+    patch([indices,fliplr(indices)],[y_LUB,fliplr(y_LLB)], theme_color, 'FaceAlpha', shade_gr(i), 'EdgeColor','none')
+    trials_bin(shades_n-i+1) = sum(z_scores(:) > z_gr(i) & z_scores(:) < z_gr(i+1));
+    trials_bin(shades_n+i) = sum(z_scores(:) < -z_gr(i) & z_scores(:) > -z_gr(i+1));
+end
+plot(copy(:,30),yTotal,'.b','MarkerSize',20)
+plot(indices,central_linfit,'--','Color',theme_color,'LineWidth',2)
+hold off
+
+xlabel('Speed (mm/s)')
+ylabel('Endpoint Error (mm)')
+title('All Trials')
+xlim([0,1800])
+ylim(ylims)
+xticks(0:500:1500)
+
+% Add labels to the northwest and southwest corners of the plot
+nw_label = 'Left        ';
+sw_label = 'Right       ';
+text(0.05, max(ylims), nw_label, 'FontWeight', 'bold', 'HorizontalAlignment','right','VerticalAlignment', 'top');
+text(0.05, min(ylims), sw_label, 'FontWeight', 'bold', 'HorizontalAlignment','right','VerticalAlignment', 'bottom');
+
 % copy = ZL;
 % tSizes = unique(copy(:,15));
 % SizeDistHitRate = NaN(5,3);
